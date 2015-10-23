@@ -3755,6 +3755,37 @@ IDE_Morph.prototype.showRemoveMemberFailurePopup = function(username) {
     this.removeMemberFailurePopup.popUp(world);
 };
 
+// * * * * * * * * * Announcement Popup * * * * * * * * * * * * * * * * *
+
+IDE_Morph.prototype.showAnnouncementPopup = function() {
+    var world = this.world();
+    var myself = this;
+    var popupWidth = 400;
+    var popupHeight = 330;
+
+    if (this.showAnnouncementPopup) {
+        this.showAnnouncementPopup.destroy();
+    }
+    this.showAnnouncementPopup = new DialogBoxMorph();
+    this.showAnnouncementPopup.setExtent(new Point(popupWidth, popupHeight));
+
+    // close dialog button
+    button = new PushButtonMorph(
+        this,
+        null,
+        (String.fromCharCode("0xf00d")),
+        null,
+        null,
+        null,
+        "redCircleIconButton"
+    );
+    button.setRight(this.showAnnouncementPopup.right() - 3);
+    button.setTop(this.showAnnouncementPopup.top() + 2);
+    button.action = function () { myself.showAnnouncementPopup.cancel(); };
+    button.drawNew();
+    button.fixLayout();
+    this.showAnnouncementPopup.add(button);
+}
 
 // ****************************
 // LIBRARY
