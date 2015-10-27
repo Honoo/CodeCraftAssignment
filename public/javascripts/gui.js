@@ -1786,6 +1786,9 @@ IDE_Morph.makeSocket = function (myself, shareboxId) {
         console.log("[SOCKET-RECEIVE] DISBAND_SHAREBOX: " + JSON.stringify(data));
     })
 
+    sharer.socket.on('NEW_ANNOUNCEMENT', function(data) {
+        myself.showAnnouncementContentPopup(data);
+    });
     sharer.socket.on('UPDATE_SHAREBOX_VIEW', function(data) {
         console.log("UPDATE_SHAREBOX_VIEW");
         ide.sharer.data.data = data;
@@ -3920,6 +3923,68 @@ IDE_Morph.prototype.showSendAnnouncementSuccessPopup = function() {
     this.sendAnnouncementSuccessPopup.popUp(world);
 };
 
+IDE_Morph.prototype.showAnnouncementContentPopup = function(data) {
+    var world = this.world();
+    var myself = this;
+    var popupWidth = 400;
+    var popupHeight = 300;
+
+    if (this.announcementContentPopup) {
+        this.announcementContentPopup.destroy();
+    }
+    this.announcementContentPopup = new DialogBoxMorph();
+    this.announcementContentPopup.setExtent(new Point(popupWidth, popupHeight));
+
+    // close dialog button
+    button = new PushButtonMorph(
+        this,
+        null,
+        (String.fromCharCode("0xf00d")),
+        null,
+        null,
+        null,
+        "redCircleIconButton"
+    );
+    button.setRight(this.announcementContentPopup.right() - 3);
+    button.setTop(this.announcementContentPopup.top() + 2);
+    button.action = function () { myself.announcementContentPopup.cancel(); };
+    button.drawNew();
+    button.fixLayout();
+    this.announcementContentPopup.add(button);
+
+    // add title
+    this.announcementContentPopup.labelString = "New Announcement!";
+    this.announcementContentPopup.createLabel();
+
+    // You were removed message
+    txt = new TextMorph(data.content);
+    txt.setCenter(this.announcementContentPopup.center());
+    txt.setTop(this.announcementContentPopup.top() + 40);
+    this.announcementContentPopup.add(txt);
+    txt.drawNew();
+
+    // "OK" button, closes the dialog.
+    okButton = new PushButtonMorph(null, null, "Got it!", null, null, null, "green");
+    okButton.setCenter(this.announcementContentPopup.center());
+    okButton.setBottom(this.announcementContentPopup.bottom() - 20);
+    okButton.action = function() { 
+        myself.announcementContentPopup.cancel();
+        socketData = { room: myself.shareboxId, announcement: data.content};
+        myself.sharer.socket.emit(
+            'READ_ANNOUNCEMENT',
+            {
+                room: myself.shareboxId,
+                announcement: data.content,
+            });
+        console.log("[SOCKET-SEND] READ_ANNOUNCEMENT: " + JSON.stringify(socketData));
+    };
+    this.announcementContentPopup.add(okButton);
+
+    // popup
+    this.announcementContentPopup.drawNew();
+    this.announcementContentPopup.fixLayout();
+    this.announcementContentPopup.popUp(world);
+};
 // ****************************
 // LIBRARY
 // ****************************
