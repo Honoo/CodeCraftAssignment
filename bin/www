@@ -165,7 +165,21 @@ io.sockets.on('connection', function(socket){
 			}
 			io.emit('SOCKET_CONTROL_UPDATE', clients);
 			
-		})
+		});
+
+		socket.on('SEND_ANNOUNCEMENT', function(data){
+			if(clients[data.room].owner.socketId === socket.id){
+				if(!(_.isUndefined(clients[data.room]))){
+						socket.broadcast.to(data.room).emit('NEW_ANNOUNCEMENT', data.announcement);
+				}
+				var targets = _.filter(clients[data.room].members, function(member) {
+					return member.socketId != clients[data.room].owner.socketId && !member.isPending;
+				})
+				var socketData = {announcement: data.announcement, recipients: targets}
+				socket.emit('ANNOUNCEMENT_TARGETS', socketData);
+			}
+			io.emit('SOCKET_CONTROL_UPDATE', clients);
+		});
 
 		socket.on('send', function(data) {
 			console.log(data.room)

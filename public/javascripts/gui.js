@@ -3757,17 +3757,17 @@ IDE_Morph.prototype.showRemoveMemberFailurePopup = function(username) {
 
 // * * * * * * * * * Announcement Popup * * * * * * * * * * * * * * * * *
 
-IDE_Morph.prototype.showAnnouncementPopup = function() {
+IDE_Morph.prototype.showSendAnnouncementPopup = function() {
     var world = this.world();
     var myself = this;
     var popupWidth = 400;
-    var popupHeight = 330;
+    var popupHeight = 300;
 
-    if (this.showAnnouncementPopup) {
-        this.showAnnouncementPopup.destroy();
+    if (this.sendAnnouncementPopup) {
+        this.sendAnnouncementPopup.destroy();
     }
-    this.showAnnouncementPopup = new DialogBoxMorph();
-    this.showAnnouncementPopup.setExtent(new Point(popupWidth, popupHeight));
+    this.sendAnnouncementPopup = new DialogBoxMorph();
+    this.sendAnnouncementPopup.setExtent(new Point(popupWidth, popupHeight));
 
     // close dialog button
     button = new PushButtonMorph(
@@ -3779,13 +3779,146 @@ IDE_Morph.prototype.showAnnouncementPopup = function() {
         null,
         "redCircleIconButton"
     );
-    button.setRight(this.showAnnouncementPopup.right() - 3);
-    button.setTop(this.showAnnouncementPopup.top() + 2);
-    button.action = function () { myself.showAnnouncementPopup.cancel(); };
+
+    button.setRight(this.sendAnnouncementPopup.right() - 3);
+    button.setTop(this.sendAnnouncementPopup.top() + 2);
+    button.action = function () { myself.sendAnnouncementPopup.cancel(); };
     button.drawNew();
     button.fixLayout();
-    this.showAnnouncementPopup.add(button);
-}
+    this.sendAnnouncementPopup.add(button);
+
+    // the text input box
+    var announcementContent = new InputFieldMorph();
+    announcementContent.setWidth(200);
+    announcementContent.setCenter(myself.sendAnnouncementPopup.center());
+    announcementContent.fontSize = 15;
+    announcementContent.typeInPadding = 4;
+    announcementContent.fixLayout();
+    announcementContent.drawNew();
+    this.sendAnnouncementPopup.add(announcementContent);
+
+
+    // "Add" Button
+    addButton = new PushButtonMorph(null, null, "Send", null, null, null, "green");
+    addButton.setCenter(myself.sendAnnouncementPopup.center());
+    addButton.setTop(announcementContent.bottom() + 10);
+    addButton.action = function () {
+        // get the username from the input
+        var content = announcementContent.getValue();
+        var txtColor = new Color(204, 0, 0);
+
+        if (content.length === 0) {
+            // show error message for blank content
+            if (this.txt) {
+                this.txt.destroy();
+            }
+            this.txt = new TextMorph("Please enter a valid message.");
+            this.txt.setColor(txtColor);
+            this.txt.setCenter(myself.sendAnnouncementPopup.center());
+            this.txt.setTop(addButton.bottom() + 20);
+            myself.sendAnnouncementPopup.add(this.txt);
+            this.txt.drawNew();
+            myself.sendAnnouncementPopup.fixLayout();
+            myself.sendAnnouncementPopup.drawNew();
+
+        } else {
+            socketData = { room: myself.shareboxId, announcement: {content: content}};
+            myself.sharer.socket.emit(
+                'SEND_ANNOUNCEMENT',
+                {
+                    room: myself.shareboxId,
+                    announcement: {content: content},
+                    ownerId: tempIdentifier
+                });
+            console.log("[SOCKET-SEND] SEND_ANNOUNCEMENT: " + JSON.stringify(socketData));
+            myself.sendAnnouncementPopup.cancel();
+            myself.showSendAnnouncementSuccessPopup();
+        }
+    };
+    this.sendAnnouncementPopup.add(addButton);
+
+
+    // add title
+    this.sendAnnouncementPopup.labelString = "Send Announcement to Group";
+    this.sendAnnouncementPopup.createLabel();
+
+    // popup
+    this.sendAnnouncementPopup.drawNew();
+    this.sendAnnouncementPopup.fixLayout();
+    this.sendAnnouncementPopup.popUp(world);
+};
+
+IDE_Morph.prototype.showSendAnnouncementSuccessPopup = function() {
+    var world = this.world();
+    var myself = this;
+    var popupWidth = 400;
+    var popupHeight = 330;
+
+    if (this.sendAnnouncementSuccessPopup) {
+        this.sendAnnouncementSuccessPopup.destroy();
+    }
+    this.sendAnnouncementSuccessPopup = new DialogBoxMorph();
+    this.sendAnnouncementSuccessPopup.setExtent(new Point(popupWidth, popupHeight));
+
+    // close dialog button
+    button = new PushButtonMorph(
+        this,
+        null,
+        (String.fromCharCode("0xf00d")),
+        null,
+        null,
+        null,
+        "redCircleIconButton"
+    );
+    button.setRight(this.sendAnnouncementSuccessPopup.right() - 3);
+    button.setTop(this.sendAnnouncementSuccessPopup.top() + 2);
+    button.action = function () { myself.sendAnnouncementSuccessPopup.cancel(); };
+    button.drawNew();
+    button.fixLayout();
+    this.sendAnnouncementSuccessPopup.add(button);
+
+    // add title
+    this.sendAnnouncementSuccessPopup.labelString = "Sent an announcement!";
+    this.sendAnnouncementSuccessPopup.createLabel();
+
+    // success image
+    var successImage = new Morph();
+    successImage.texture = 'images/success.png';
+    successImage.drawNew = function () {
+        this.image = newCanvas(this.extent());
+        var context = this.image.getContext('2d');
+        var picBgColor = myself.sendAnnouncementSuccessPopup.color;
+        context.fillStyle = picBgColor.toString();
+        context.fillRect(0, 0, this.width(), this.height());
+        if (this.texture) {
+            this.drawTexture(this.texture);
+        }
+    };
+
+    successImage.setExtent(new Point(128, 128));
+    successImage.setCenter(this.sendAnnouncementSuccessPopup.center());
+    successImage.setTop(this.sendAnnouncementSuccessPopup.top() + 40);
+    this.sendAnnouncementSuccessPopup.add(successImage);
+
+    // success message
+    txt = new TextMorph("Your announcement has been sent.\nYou will be notified when everyone has read it.");
+    txt.setCenter(this.sendAnnouncementSuccessPopup.center());
+    txt.setTop(successImage.bottom() + 20);
+    this.sendAnnouncementSuccessPopup.add(txt);
+    txt.drawNew();
+
+    // "got it!" button, closes the dialog.
+    okButton = new PushButtonMorph(null, null, "Alright!", null, null, null, "green");
+    okButton.setCenter(this.sendAnnouncementSuccessPopup.center());
+    okButton.setBottom(this.sendAnnouncementSuccessPopup.bottom() - 10);
+    okButton.action = function() { myself.sendAnnouncementSuccessPopup.cancel(); };
+    this.sendAnnouncementSuccessPopup.add(okButton);
+
+    // popup
+    this.sendAnnouncementSuccessPopup.drawNew();
+    this.sendAnnouncementSuccessPopup.fixLayout();
+    this.sendAnnouncementSuccessPopup.popUp(world);
+};
 
 // ****************************
 // LIBRARY
@@ -6105,6 +6238,11 @@ IDE_Morph.prototype.shareBoxSettingsMenu = function() {
     menu.addItem(
         'Add Members',
         'showAddMemberPopup'
+    );
+    menu.addLine();
+    menu.addItem(
+        'Send Announcement',
+        'showSendAnnouncementPopup'
     );
     menu.addLine();
     menu.addItem(
