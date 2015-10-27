@@ -226,7 +226,8 @@ IDE_Morph.prototype.init = function (isAutoFill) {
     this.projectNotes = '';
     this.sharer = IDE_Morph.makeSocket.call(this, this, '42');
     this.shareboxId = 'No Group Yet';
-
+    this.announcements = {}; // each key is an announcement content,
+                             // and value is the list of recipients.
     this.logo = null;
     this.controlBar = null;
     this.categories = null;
@@ -1764,7 +1765,6 @@ IDE_Morph.makeSocket = function (myself, shareboxId) {
 
     //sharer.socket.emit('join', {id: tempIdentifier, room: room });
     //console.log(tempIdentifier +": join room " + room);
-
     sharer.socket.on('NEW_MEMBER_JOINED', function(data) {
         console.log("[SOCKET-RECEIVE] NEW_MEMBER_JOINED: " + JSON.stringify(data))
     });
@@ -1789,6 +1789,23 @@ IDE_Morph.makeSocket = function (myself, shareboxId) {
     sharer.socket.on('NEW_ANNOUNCEMENT', function(data) {
         myself.showAnnouncementContentPopup(data);
     });
+
+    sharer.socket.on('ACKNOWLEDGE_ANNOUNCEMENT', function(data) {
+        var targets = myself.announcements[data.announcement];
+        if (targets) {
+            myself.announcements[data.announcement] = _.filter(targets, function(m) {
+                return m.socketId != data.socketId;
+            });
+            if (myself.announcements[data.announcement].length == 0) {
+                myself.showAnnouncementAllReadPopup(data.announcement);
+            }
+        }
+    });
+
+    sharer.socket.on('ANNOUNCEMENT_TARGETS', function(data) {
+        myself.announcements[data.announcement.content] = data.recipients;
+    });
+
     sharer.socket.on('UPDATE_SHAREBOX_VIEW', function(data) {
         console.log("UPDATE_SHAREBOX_VIEW");
         ide.sharer.data.data = data;
@@ -3985,6 +4002,64 @@ IDE_Morph.prototype.showAnnouncementContentPopup = function(data) {
     this.announcementContentPopup.fixLayout();
     this.announcementContentPopup.popUp(world);
 };
+
+IDE_Morph.prototype.showAnnouncementAllReadPopup = function(data) {
+    var world = this.world();
+    var myself = this;
+    var popupWidth = 400;
+    var popupHeight = 300;
+
+    if (this.announcementAllReadPopup) {
+        this.announcementAllReadPopup.destroy();
+    }
+    this.announcementAllReadPopup = new DialogBoxMorph();
+    this.announcementAllReadPopup.setExtent(new Point(popupWidth, popupHeight));
+
+    // close dialog button
+    button = new PushButtonMorph(
+        this,
+        null,
+        (String.fromCharCode("0xf00d")),
+        null,
+        null,
+        null,
+        "redCircleIconButton"
+    );
+    button.setRight(this.announcementAllReadPopup.right() - 3);
+    button.setTop(this.announcementAllReadPopup.top() + 2);
+    button.action = function () { myself.announcementAllReadPopup.cancel(); };
+    button.drawNew();
+    button.fixLayout();
+    this.announcementAllReadPopup.add(button);
+
+    // add title
+    this.announcementAllReadPopup.labelString = "Announcement has been read by everyone!";
+    this.announcementAllReadPopup.createLabel();
+
+    // You were removed message
+    txt = new TextMorph('Your announcement has been read by everyone in the group.\n' +
+                        'Here is the original message:\n\n' + data);
+    txt.setCenter(this.announcementAllReadPopup.center());
+    txt.setTop(this.announcementAllReadPopup.top() + 40);
+    this.announcementAllReadPopup.add(txt);
+    txt.drawNew();
+
+    // "OK" button, closes the dialog.
+    okButton = new PushButtonMorph(null, null, "Cool!", null, null, null, "green");
+    okButton.setCenter(this.announcementAllReadPopup.center());
+    okButton.setBottom(this.announcementAllReadPopup.bottom() - 20);
+    okButton.action = function() { 
+        myself.announcementAllReadPopup.cancel();
+        delete myself.announcements[data];
+    };
+    this.announcementAllReadPopup.add(okButton);
+
+    // popup
+    this.announcementAllReadPopup.drawNew();
+    this.announcementAllReadPopup.fixLayout();
+    this.announcementAllReadPopup.popUp(world);
+};
+
 // ****************************
 // LIBRARY
 // ****************************
