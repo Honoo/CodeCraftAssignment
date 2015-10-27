@@ -180,6 +180,13 @@ io.sockets.on('connection', function(socket){
 			}
 			io.emit('SOCKET_CONTROL_UPDATE', clients);
 		});
+		socket.on('READ_ANNOUNCEMENT', function(data){
+			if(!(_.isUndefined(clients[data.room]))){
+				var socketData = { announcement: data.announcement, socketId: socket.id }
+				socket.to(clients[data.room].owner.socketId).emit('ACKNOWLEDGE_ANNOUNCEMENT', socketData);
+			}
+			io.emit('SOCKET_CONTROL_UPDATE', clients);
+		});
 
 		socket.on('send', function(data) {
 			console.log(data.room)
