@@ -1475,7 +1475,7 @@ IDE_Morph.prototype.createCorral = function () {
 // ****************************
 
 // xinni: "settings" and "add member" buttons on the title bar.
-IDE_Morph.prototype.createShareBoxTitleBarButtons = function () {
+IDE_Morph.prototype.createShareBoxTitleBarButtons = function (isOwner) {
 
     // destroy if already exists
     if (this.shareBoxTitleBarButtons) {
@@ -1492,7 +1492,7 @@ IDE_Morph.prototype.createShareBoxTitleBarButtons = function () {
     // settings button
     button = new PushButtonMorph(
         this,
-        'shareBoxSettingsMenu',
+        'shareBoxSettingsMenu' + (isOwner ? 'Owner' : ''),
         new SymbolMorph('gears', 14),
         null,
         null,
@@ -2192,7 +2192,7 @@ IDE_Morph.prototype.showEntireShareBoxComponent = function(isOwner) {
         myself.createShareBoxBar();
         // create title bar buttons
         myself.createShareBoxTitleBar();
-        myself.createShareBoxTitleBarButtons();
+        myself.createShareBoxTitleBarButtons(isOwner);
         myself.createShareBox();
         
         myself.fixLayout();
@@ -2209,7 +2209,7 @@ IDE_Morph.prototype.showEntireShareBoxComponent = function(isOwner) {
         myself.createShareBoxBar();
         // create title bar buttons
         myself.createShareBoxTitleBar();
-        myself.createShareBoxTitleBarButtons();
+        myself.createShareBoxTitleBarButtons(isOwner);
         myself.createShareBox();
         
         myself.fixLayout();
@@ -6359,12 +6359,14 @@ IDE_Morph.prototype.getCostumesList = function (dirname) {
     return costumes;
 };
 
-
+IDE_Morph.prototype.shareBoxSettingsMenuOwner = function() {
+    this.shareBoxSettingsMenu(true);
+}
     // xinni: sharebox menu buttons
-IDE_Morph.prototype.shareBoxSettingsMenu = function() {
+IDE_Morph.prototype.shareBoxSettingsMenu = function(isOwner) {
 
     console.log("Settings for sharebox triggered");
-
+    var owner = isOwner || false;
     var menu,
         world = this.world(),
         pos = this.shareBoxTitleBarButtons.shareBoxSettingsButton.bottomLeft();
@@ -6380,11 +6382,13 @@ IDE_Morph.prototype.shareBoxSettingsMenu = function() {
         'showAddMemberPopup'
     );
     menu.addLine();
-    menu.addItem(
-        'Send Announcement',
-        'showSendAnnouncementPopup'
-    );
-    menu.addLine();
+    if (owner) {
+        menu.addItem(
+            'Send Announcement',
+            'showSendAnnouncementPopup'
+        );
+        menu.addLine();
+    }
     menu.addItem(
         'Leave group',
         'showLeaveGroupPopup'
